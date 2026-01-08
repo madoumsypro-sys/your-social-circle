@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Users } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -39,19 +39,29 @@ export default function Profile() {
           <p className="mb-4 text-sm text-muted-foreground">{user?.email}</p>
 
           {/* Stats */}
-          <div className="mb-6 flex justify-center gap-8">
+          <div className="mb-6 flex justify-center gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-primary">{userPosts.length}</p>
               <p className="text-sm text-muted-foreground">Publications</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-accent">{totalLikes}</p>
-              <p className="text-sm text-muted-foreground">J'aime reçus</p>
+              <p className="text-2xl font-bold text-secondary">{user?.followers.length ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Abonnés</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-accent">{user?.following.length ?? 0}</p>
+              <p className="text-sm text-muted-foreground">Abonnements</p>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link to="/search">
+              <Button variant="outline" className="gap-2">
+                <Users className="h-4 w-4" />
+                Trouver des amis
+              </Button>
+            </Link>
             <Link to="/settings">
               <Button variant="outline" className="gap-2">
                 <Settings className="h-4 w-4" />
