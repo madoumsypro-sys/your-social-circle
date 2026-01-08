@@ -45,11 +45,11 @@ export default function Profile() {
               <p className="text-sm text-muted-foreground">Publications</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-secondary">{user?.followers.length ?? 0}</p>
+              <p className="text-2xl font-bold text-secondary">{user?.followers?.length ?? 0}</p>
               <p className="text-sm text-muted-foreground">Abonnés</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-accent">{user?.following.length ?? 0}</p>
+              <p className="text-2xl font-bold text-accent">{user?.following?.length ?? 0}</p>
               <p className="text-sm text-muted-foreground">Abonnements</p>
             </div>
           </div>
