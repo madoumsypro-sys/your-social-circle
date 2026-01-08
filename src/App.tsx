@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocialProvider } from "./contexts/SocialContext";
+import { MessagesProvider } from "./contexts/MessagesContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -14,6 +15,8 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Search from "./pages/Search";
 import UserProfile from "./pages/UserProfile";
+import Messages from "./pages/Messages";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +46,8 @@ function AppRoutes() {
       <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />
       <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/chat/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       <Route path="/user/:userId" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -59,7 +64,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SocialProvider>
-            <AppRoutes />
+            <MessagesProvider>
+              <AppRoutes />
+            </MessagesProvider>
           </SocialProvider>
         </AuthProvider>
       </BrowserRouter>
