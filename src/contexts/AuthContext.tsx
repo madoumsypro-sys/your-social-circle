@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User } from '@/types/social';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
@@ -9,6 +9,9 @@ interface AuthContextType {
   register: (name: string, email: string, password: string) => boolean;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
+  getAllUsers: () => User[];
+  followUser: (targetUserId: string) => void;
+  unfollowUser: (targetUserId: string) => void;
   error: string | null;
 }
 
@@ -43,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name,
       email,
       avatar: DEFAULT_AVATAR,
+      followers: [],
+      following: [],
     };
     setUsers([...users, { email, password, user: newUser }]);
     setCurrentUser(newUser);
@@ -64,6 +69,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ));
   };
 
+  const getAllUsers = (): User[] => {
+    return users.map(u => u.user);
+  };
+
+  const followUser = (targetUserId: string) => {
+    if (!currentUser || targetUserId === currentUser.id) return;
+    
+    // Update current user's following
+    const updatedCurrentUser = {
+      ...currentUser,
+      following: [...currentUser.following, targetUserId],
+    };
+    
+    // Update target user's followers
+    const updatedUsers = users.map(u => {
+      if (u.user.id === currentUser.id) {
+        return { ...u, user: updatedCurrentUser };
+      }
+      if (u.user.id === targetUserId) {
+        return {
+          ...u,
+          user: {
+            ...u.user,
+            followers: [...u.user.followers, currentUser.id],
+          },
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    setCurrentUser(updatedCurrentUser);
+  };
+
+  const unfollowUser = (targetUserId: string) => {
+    if (!currentUser) return;
+    
+    // Update current user's following
+    const updatedCurrentUser = {
+      ...currentUser,
+      following: currentUser.following.filter(id => id !== targetUserId),
+    };
+    
+    // Update target user's followers
+    const updatedUsers = users.map(u => {
+      if (u.user.id === currentUser.id) {
+        return { ...u, user: updatedCurrentUser };
+      }
+      if (u.user.id === targetUserId) {
+        return {
+          ...u,
+          user: {
+            ...u.user,
+            followers: u.user.followers.filter(id => id !== currentUser.id),
+          },
+        };
+      }
+      return u;
+    });
+
+    setUsers(updatedUsers);
+    setCurrentUser(updatedCurrentUser);
+  };
+
   return (
     <AuthContext.Provider value={{
       user: currentUser,
@@ -72,6 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       updateProfile,
+      getAllUsers,
+      followUser,
+      unfollowUser,
       error,
     }}>
       {children}

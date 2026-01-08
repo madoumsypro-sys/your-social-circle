@@ -1,12 +1,12 @@
-import { Home, PlusSquare, User, Settings } from 'lucide-react';
+import { Home, PlusSquare, User, Search } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const navItems = [
   { icon: Home, label: 'Feed', path: '/feed' },
+  { icon: Search, label: 'Rechercher', path: '/search' },
   { icon: PlusSquare, label: 'Créer', path: '/create' },
   { icon: User, label: 'Profil', path: '/profile' },
-  { icon: Settings, label: 'Paramètres', path: '/settings' },
 ];
 
 export function BottomNav() {

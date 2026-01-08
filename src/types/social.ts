@@ -3,6 +3,8 @@ export interface User {
   name: string;
   avatar: string;
   email?: string;
+  followers: string[];
+  following: string[];
 }
 
 export interface Post {
