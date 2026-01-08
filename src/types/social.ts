@@ -32,3 +32,19 @@ export interface Story {
   createdAt: Date;
   viewed: boolean;
 }
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: Date;
+  read: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  participants: string[];
+  lastMessage?: Message;
+  updatedAt: Date;
+}
