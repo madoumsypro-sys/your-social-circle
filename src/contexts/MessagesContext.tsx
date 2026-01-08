@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 interface MessagesContextType {
   conversations: Conversation[];
   messages: Message[];
-  sendMessage: (receiverId: string, content: string) => void;
+  sendMessage: (receiverId: string, content: string, image?: string) => void;
   getConversation: (otherUserId: string) => Conversation | undefined;
   getMessages: (conversationId: string) => Message[];
   markAsRead: (conversationId: string) => void;
@@ -40,14 +40,15 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [messages]);
 
-  const sendMessage = (receiverId: string, content: string) => {
-    if (!user || !content.trim()) return;
+  const sendMessage = (receiverId: string, content: string, image?: string) => {
+    if (!user || (!content.trim() && !image)) return;
 
     const newMessage: Message = {
       id: crypto.randomUUID(),
       senderId: user.id,
       receiverId,
       content: content.trim(),
+      image,
       createdAt: new Date(),
       read: false,
     };
