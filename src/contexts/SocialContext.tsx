@@ -1,7 +1,8 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { Post, Story } from '@/types/social';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useAuth } from './AuthContext';
+import { BOT_POSTS, BOT_STORIES } from '@/data/seedData';
 
 interface SocialContextType {
   posts: Post[];
@@ -20,6 +21,19 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [posts, setPosts] = useLocalStorage<Post[]>('gsh-posts', []);
   const [stories, setStories] = useLocalStorage<Story[]>('gsh-stories', []);
+
+  // Initialize bot posts and stories on first load
+  useEffect(() => {
+    const hasBotPosts = posts.some(p => p.id.startsWith('post-'));
+    if (!hasBotPosts) {
+      setPosts(prev => [...BOT_POSTS, ...prev]);
+    }
+    
+    const hasBotStories = stories.some(s => s.id.startsWith('story-'));
+    if (!hasBotStories) {
+      setStories(prev => [...BOT_STORIES, ...prev]);
+    }
+  }, []);
 
   const addPost = (content: string, image?: string) => {
     if (!user || !content.trim()) return;

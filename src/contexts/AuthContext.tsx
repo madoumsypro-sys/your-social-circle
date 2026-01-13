@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User } from '@/types/social';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { BOT_USERS } from '@/data/seedData';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useLocalStorage<{ email: string; password: string; user: User }[]>('gsh-users', []);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('gsh-current-user', null);
   const [error, setError] = useState<string | null>(null);
+
+  // Initialize bot users on first load
+  useEffect(() => {
+    const hasBotsInitialized = users.some(u => u.user.id.startsWith('bot-'));
+    if (!hasBotsInitialized) {
+      setUsers(prev => [...BOT_USERS, ...prev]);
+    }
+  }, []);
 
   const login = (email: string, password: string): boolean => {
     setError(null);
