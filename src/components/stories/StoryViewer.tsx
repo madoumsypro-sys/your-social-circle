@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 import { Story } from '@/types/social';
 import { useSocial } from '@/contexts/SocialContext';
 
@@ -50,7 +51,10 @@ export function StoryViewer({ story, onClose }: StoryViewerProps) {
             alt={story.user.name}
             className="h-10 w-10 rounded-full object-cover ring-2 ring-white"
           />
-          <span className="font-medium text-white">{story.user.name}</span>
+          <span className="flex items-center gap-1 font-medium text-white">
+            {story.user.name}
+            <UserBadge userId={story.user.id} className="text-white/80" />
+          </span>
           <button
             onClick={onClose}
             className="ml-auto rounded-full bg-white/20 p-2 backdrop-blur-sm"

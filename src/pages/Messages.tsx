@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MessageCircle, Search } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -115,7 +116,10 @@ export default function Messages() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium">{otherUser.name}</p>
+                          <p className="flex items-center gap-1 font-medium">
+                            {otherUser.name}
+                            <UserBadge userId={otherUser.id} />
+                          </p>
                           {conv.lastMessage && (
                             <p className="text-sm text-muted-foreground truncate">
                               {conv.lastMessage.senderId === user?.id ? 'Vous: ' : ''}

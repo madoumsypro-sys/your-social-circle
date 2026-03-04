@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Story } from '@/types/social';
 import { Plus } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 
 interface StoryCircleProps {
   story?: Story;
@@ -31,8 +32,9 @@ export function StoryCircle({ story, isAddNew, onClick }: StoryCircleProps) {
           )}
         </div>
       </div>
-      <span className="max-w-[72px] truncate text-xs font-medium text-foreground">
+      <span className="flex max-w-[72px] items-center gap-0.5 truncate text-xs font-medium text-foreground">
         {isAddNew ? 'Ajouter' : story?.user.name}
+        {!isAddNew && story && <UserBadge userId={story.user.id} className="h-3 w-3" />}
       </span>
     </motion.button>
   );
