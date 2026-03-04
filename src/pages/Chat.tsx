@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Send } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,10 @@ export default function Chat() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold">{otherUser.name}</p>
+            <p className="flex items-center gap-1 font-semibold">
+              {otherUser.name}
+              <UserBadge userId={otherUser.id} />
+            </p>
             <p className="text-xs text-muted-foreground">Voir le profil</p>
           </div>
         </Link>
@@ -97,7 +101,10 @@ export default function Chat() {
                 {otherUser.name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p className="font-semibold text-lg">{otherUser.name}</p>
+            <p className="flex items-center gap-1 font-semibold text-lg">
+              {otherUser.name}
+              <UserBadge userId={otherUser.id} />
+            </p>
             <p className="text-muted-foreground mt-1">
               Démarrez la conversation !
             </p>

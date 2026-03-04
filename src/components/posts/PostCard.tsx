@@ -5,6 +5,7 @@ import { Post } from '@/types/social';
 import { useSocial } from '@/contexts/SocialContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
+import { UserBadge } from '@/components/UserBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -51,7 +52,10 @@ export function PostCard({ post }: PostCardProps) {
           className="h-12 w-12 rounded-full object-cover ring-2 ring-primary/20"
         />
         <div className="flex-1">
-          <h3 className="font-semibold text-foreground">{post.user.name}</h3>
+          <h3 className="flex items-center gap-1.5 font-semibold text-foreground">
+            {post.user.name}
+            <UserBadge userId={post.user.id} />
+          </h3>
           <p className="text-xs text-muted-foreground">{timeAgo}</p>
         </div>
         {isOwner && (
@@ -137,7 +141,10 @@ export function PostCard({ post }: PostCardProps) {
                   className="h-8 w-8 rounded-full object-cover"
                 />
                 <div className="flex-1 rounded-2xl bg-muted/50 p-3">
-                  <p className="text-sm font-medium">{comment.user.name}</p>
+                  <p className="flex items-center gap-1 text-sm font-medium">
+                    {comment.user.name}
+                    <UserBadge userId={comment.user.id} />
+                  </p>
                   <p className="text-sm text-muted-foreground">{comment.content}</p>
                 </div>
               </div>

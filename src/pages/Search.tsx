@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search as SearchIcon, UserPlus, UserMinus, User } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -85,7 +86,10 @@ export default function Search() {
                       className="h-12 w-12 rounded-full object-cover ring-2 ring-primary/20"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{targetUser.name}</p>
+                      <p className="flex items-center gap-1 font-semibold truncate">
+                        {targetUser.name}
+                        <UserBadge userId={targetUser.id} />
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {targetUser.followers.length} abonné{targetUser.followers.length !== 1 ? 's' : ''}
                       </p>

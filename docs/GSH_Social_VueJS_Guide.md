@@ -1386,7 +1386,402 @@ Les endpoints d'authentification seront automatiquement disponibles :
 
 ---
 
-## 13. Migration vers MongoDB (Phase finale)
+## 13. Suggestions d'amis
+
+### src/components/FriendSuggestions.vue
+```vue
+<template>
+  <div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+      <h2 class="card-title text-lg">Suggestions d'amis</h2>
+      <div class="space-y-3">
+        <div 
+          v-for="user in suggestions" 
+          :key="user.id"
+          class="flex items-center gap-3"
+        >
+          <div class="avatar">
+            <div class="w-10 rounded-full">
+              <img :src="user.avatar" :alt="user.name" />
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <RouterLink :to="`/user/${user.id}`" class="font-semibold text-sm hover:underline flex items-center gap-1">
+              {{ user.name }}
+              <span v-if="user.isBot" class="badge badge-ghost badge-xs">🤖</span>
+              <span v-else class="text-info">✓</span>
+            </RouterLink>
+            <p class="text-xs text-base-content/60">{{ user.followers?.length || 0 }} abonnés</p>
+          </div>
+          <button 
+            class="btn btn-primary btn-xs"
+            @click="followUser(user.id)"
+          >
+            Suivre
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useUsersStore } from '@/stores/users'
+
+const authStore = useAuthStore()
+const usersStore = useUsersStore()
+
+// Suggestions = utilisateurs non suivis par l'utilisateur connecté
+const suggestions = computed(() => {
+  if (!authStore.user) return []
+  return usersStore.users.filter(u => 
+    u.id !== authStore.user.id && 
+    !authStore.user.following.includes(u.id)
+  ).slice(0, 5)
+})
+
+const followUser = async (userId) => {
+  await authStore.followUser(userId)
+}
+</script>
+```
+
+**Logique clé** : Quand un utilisateur A crée un compte, il apparaît automatiquement dans la liste des suggestions de l'utilisateur B (et inversement), car ils ne se suivent pas encore.
+
+---
+
+## 14. Messagerie temps réel avec polling
+
+Pour simuler le temps réel sans WebSocket (json-server ne les supporte pas), utilisez du polling :
+
+### src/stores/messages.js (version améliorée)
+```javascript
+// Ajouter dans le store messages existant :
+
+// Polling pour nouveaux messages
+let pollingInterval = null
+
+function startPolling(conversationId) {
+  stopPolling()
+  pollingInterval = setInterval(async () => {
+    if (!authStore.user) return
+    try {
+      const response = await api.get(`/messages?conversationId=${conversationId}&_sort=createdAt&_order=asc`)
+      messages.value = response.data
+    } catch (err) {
+      console.error('Polling error', err)
+    }
+  }, 2000) // Vérifie toutes les 2 secondes
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+```
+
+### src/views/ChatView.vue (avec polling)
+```vue
+<template>
+  <div class="flex flex-col h-screen">
+    <!-- Header -->
+    <div class="navbar bg-base-100 shadow-sm">
+      <button class="btn btn-ghost btn-sm" @click="$router.back()">←</button>
+      <div class="flex items-center gap-2 flex-1">
+        <div class="avatar">
+          <div class="w-8 rounded-full">
+            <img :src="otherUser?.avatar" :alt="otherUser?.name" />
+          </div>
+        </div>
+        <span class="font-semibold">{{ otherUser?.name }}</span>
+        <span v-if="otherUser?.id?.startsWith('bot-')" class="badge badge-ghost badge-xs">🤖</span>
+        <span v-else class="text-info text-sm">✓</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div v-if="chatMessages.length === 0" class="text-center py-8">
+        <p class="text-base-content/60">Démarrez la conversation !</p>
+      </div>
+      <div 
+        v-for="msg in chatMessages" 
+        :key="msg.id"
+        class="chat"
+        :class="msg.senderId === authStore.user?.id ? 'chat-end' : 'chat-start'"
+      >
+        <div 
+          class="chat-bubble"
+          :class="msg.senderId === authStore.user?.id ? 'chat-bubble-primary' : ''"
+        >
+          {{ msg.content }}
+        </div>
+        <div class="chat-footer opacity-50 text-xs">
+          {{ formatTime(msg.createdAt) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="p-4 bg-base-100 border-t">
+      <div class="flex gap-2">
+        <input 
+          v-model="newMessage"
+          type="text" 
+          placeholder="Écrire un message..." 
+          class="input input-bordered flex-1"
+          @keyup.enter="sendMessage"
+        />
+        <button class="btn btn-primary" @click="sendMessage" :disabled="!newMessage.trim()">
+          Envoyer
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useMessagesStore } from '@/stores/messages'
+import { useUsersStore } from '@/stores/users'
+
+const route = useRoute()
+const authStore = useAuthStore()
+const messagesStore = useMessagesStore()
+const usersStore = useUsersStore()
+
+const otherUser = ref(null)
+const chatMessages = ref([])
+const newMessage = ref('')
+const messagesContainer = ref(null)
+
+const formatTime = (date) => {
+  return new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+const scrollToBottom = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+const sendMessage = async () => {
+  if (!newMessage.value.trim()) return
+  await messagesStore.sendMessage(route.params.userId, newMessage.value)
+  newMessage.value = ''
+  scrollToBottom()
+}
+
+onMounted(async () => {
+  otherUser.value = await usersStore.getUserById(route.params.userId)
+  messagesStore.startPolling(route.params.userId)
+})
+
+onUnmounted(() => {
+  messagesStore.stopPolling()
+})
+
+watch(() => messagesStore.messages, () => {
+  chatMessages.value = messagesStore.messages
+  scrollToBottom()
+}, { deep: true })
+</script>
+```
+
+---
+
+## 15. Gestion du thème (Mode sombre/clair)
+
+### src/stores/theme.js
+```javascript
+import { defineStore } from 'pinia'
+import { ref, watch } from 'vue'
+
+export const useThemeStore = defineStore('theme', () => {
+  const theme = ref('light') // 'light' ou 'dark'
+
+  // Appliquer le thème au chargement
+  function initTheme() {
+    const saved = localStorage.getItem('gsh-theme')
+    if (saved) {
+      theme.value = saved
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      theme.value = 'dark'
+    }
+    applyTheme()
+  }
+
+  function toggleTheme() {
+    theme.value = theme.value === 'light' ? 'dark' : 'light'
+    applyTheme()
+  }
+
+  function applyTheme() {
+    document.documentElement.setAttribute('data-theme', theme.value)
+    localStorage.setItem('gsh-theme', theme.value)
+  }
+
+  return { theme, initTheme, toggleTheme }
+}, {
+  persist: {
+    paths: ['theme']
+  }
+})
+```
+
+### Utilisation dans App.vue
+```vue
+<script setup>
+import { onMounted } from 'vue'
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+
+onMounted(() => {
+  themeStore.initTheme()
+})
+</script>
+```
+
+### Bouton toggle dans la Navbar
+```vue
+<button class="btn btn-ghost btn-circle" @click="themeStore.toggleTheme()">
+  <span v-if="themeStore.theme === 'light'">🌙</span>
+  <span v-else>☀️</span>
+</button>
+```
+
+---
+
+## 16. Badges utilisateurs (Bot vs Vérifié)
+
+Dans tous les composants qui affichent un nom d'utilisateur, ajoutez :
+
+```vue
+<!-- Robot pour les bots -->
+<span v-if="user.id.startsWith('bot-')" class="badge badge-ghost badge-xs" title="Compte robot">🤖</span>
+
+<!-- Vérifié pour les vrais utilisateurs -->
+<span v-else class="text-info" title="Compte vérifié">✓</span>
+```
+
+Ou créez un composant réutilisable :
+
+### src/components/ui/UserBadge.vue
+```vue
+<template>
+  <span v-if="isBot" class="inline-flex items-center" title="Compte robot">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-base-content/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="11" width="18" height="10" rx="2" />
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v4" />
+      <line x1="8" y1="16" x2="8" y2="16" />
+      <line x1="16" y1="16" x2="16" y2="16" />
+    </svg>
+  </span>
+  <span v-else class="inline-flex items-center" title="Compte vérifié">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-info" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  </span>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+
+const props = defineProps({
+  userId: { type: String, required: true }
+})
+
+const isBot = computed(() => props.userId.startsWith('bot-'))
+</script>
+```
+
+---
+
+## 17. Checklist de validation
+
+Utilisez cette checklist pour vérifier que tout fonctionne :
+
+### Inscription / Connexion
+- [ ] Créer un compte → données enregistrées dans `db.json`
+- [ ] Se connecter avec les identifiants créés
+- [ ] Le profil affiche les bonnes données
+
+### Multi-utilisateurs
+- [ ] Créer compte A et compte B
+- [ ] Compte A voit compte B dans les suggestions
+- [ ] Compte B voit compte A dans les suggestions
+
+### Messagerie
+- [ ] Envoyer un message de A vers B
+- [ ] B voit le message (après polling)
+- [ ] L'historique est conservé dans `db.json`
+- [ ] Les messages restent après actualisation
+
+### Publications
+- [ ] Poster du contenu → enregistré dans `db.json`
+- [ ] Le post apparaît dans le fil général
+- [ ] Les autres utilisateurs voient le post
+- [ ] Les posts restent après actualisation
+
+### Thème
+- [ ] Activer/désactiver le mode sombre
+- [ ] Le choix est conservé après actualisation
+- [ ] Design cohérent en mode clair et sombre
+
+### Badges
+- [ ] Les bots affichent l'icône 🤖
+- [ ] Les vrais utilisateurs affichent le badge vérifié ✓
+
+---
+
+## 18. Migration vers json-server-auth
+
+Pour ajouter une authentification JWT sécurisée :
+
+```bash
+npm install -D json-server-auth
+```
+
+Modifier le script server :
+```json
+{
+  "scripts": {
+    "server": "json-server-auth --watch db.json --port 3001"
+  }
+}
+```
+
+Les endpoints d'authentification seront automatiquement disponibles :
+- POST `/register` - Inscription (retourne un JWT)
+- POST `/login` - Connexion (retourne un JWT)
+
+Adapter le store auth :
+```javascript
+async function login(email, password) {
+  const response = await api.post('/login', { email, password })
+  token.value = response.data.accessToken
+  user.value = response.data.user
+}
+
+async function register(name, email, password) {
+  const response = await api.post('/register', { email, password, name, avatar: '...', followers: [], following: [] })
+  token.value = response.data.accessToken
+  user.value = response.data.user
+}
+```
+
+---
+
+## 19. Migration vers MongoDB (Phase finale)
 
 Pour la production, vous pouvez migrer vers Node.js + Express + MongoDB :
 
@@ -1398,4 +1793,13 @@ Créer un serveur Express qui remplace json-server avec les mêmes endpoints API
 
 ---
 
-Ce guide couvre l'ensemble des fonctionnalités demandées dans le cahier des charges. Bonne chance pour votre projet GSH Social ! 🚀
+Ce guide couvre l'ensemble des fonctionnalités demandées dans le cahier des charges, incluant :
+- ✅ Inscription / Connexion avec persistance
+- ✅ Suggestions d'amis bidirectionnelles
+- ✅ Messagerie avec historique
+- ✅ Publications visibles par tous
+- ✅ Mode sombre / clair
+- ✅ Badges bot 🤖 / vérifié ✓
+- ✅ Données persistantes après actualisation
+
+Bonne chance pour votre projet GSH Social ! 🚀

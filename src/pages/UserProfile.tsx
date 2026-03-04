@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserPlus, UserMinus, ArrowLeft } from 'lucide-react';
+import { UserBadge } from '@/components/UserBadge';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSocial } from '@/contexts/SocialContext';
@@ -67,7 +68,10 @@ export default function UserProfile() {
             className="mx-auto mb-4 h-24 w-24 rounded-full object-cover ring-4 ring-primary/30"
             whileHover={{ scale: 1.05 }}
           />
-          <h1 className="mb-1 text-2xl font-bold">{targetUser.name}</h1>
+          <h1 className="mb-1 flex items-center justify-center gap-2 text-2xl font-bold">
+            {targetUser.name}
+            <UserBadge userId={targetUser.id} />
+          </h1>
 
           {/* Stats */}
           <div className="mb-6 flex justify-center gap-6">
